@@ -30,7 +30,10 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html"
+                        "/swagger-ui.html",
+                        "/",
+                        "/index.html",
+                        "/assets/**"
                         ).permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(resourceServer -> resourceServer

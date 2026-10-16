@@ -14,6 +14,26 @@ Aplicação full stack para controle financeiro pessoal. O projeto combina uma A
 - Isolamento dos dados: cada pessoa acessa apenas os próprios registros.
 - Migrações de banco versionadas com Flyway e documentação de API com Swagger / OpenAPI.
 
+## Interface
+
+Capturas da interface atual, com dados demonstrativos:
+
+### Login
+
+![Tela de login do FinancesFlow](docs/screenshots/login.png)
+
+### Visão geral
+
+![Dashboard do FinancesFlow](docs/screenshots/dashboard.png)
+
+### Histórico de transações
+
+![Histórico de transações do FinancesFlow](docs/screenshots/transactions.png)
+
+### Cartões e faturas
+
+![Tela de cartões e faturas do FinancesFlow](docs/screenshots/cards.png)
+
 ## Tecnologias
 
 | Camada | Tecnologias |
@@ -47,13 +67,22 @@ O frontend envia requisições autenticadas para a API. Os controllers recebem o
 
 ### Backend e banco de dados
 
-Na raiz do projeto, execute:
+Crie o arquivo local `.env` a partir do exemplo e substitua o valor de `JWT_SECRET` por um segredo aleatório com pelo menos 32 bytes. O exemplo mantém a senha local do PostgreSQL alinhada com o volume criado nas instruções anteriores. O `.env` está no `.gitignore` e não deve ser enviado ao GitHub.
+
+No PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+
+Depois, na raiz do projeto, inicie a API e o banco:
 
 ```bash
 docker compose up -d --build
 ```
 
-A API fica em `http://localhost:8080`. A interface Swagger fica em `http://localhost:8080/swagger-ui/index.html`.
+A API fica em `http://localhost:8080`, a interface web servida pelo container em `http://localhost:8080` e o Swagger em `http://localhost:8080/swagger-ui/index.html`.
 
 ### Frontend
 
@@ -66,6 +95,8 @@ npm run dev
 ```
 
 Abra `http://localhost:5173`. Se essa porta estiver ocupada, o Vite informa a porta alternativa no terminal. O Vite encaminha as chamadas `/api` para o backend local.
+
+Esse servidor Vite separado é útil durante o desenvolvimento, pois atualiza a interface a cada alteração. A imagem Docker também compila o frontend e o inclui na aplicação Spring Boot para executar API e interface no mesmo endereço.
 
 Para parar os containers, execute `docker compose down`. O banco usa um volume Docker, então os dados persistem entre reinicializações. `docker compose down -v` também remove o volume e apaga os dados locais.
 
@@ -90,6 +121,17 @@ npm run build
 ## Integração contínua
 
 O workflow do GitHub Actions roda em cada push e pull request. Em paralelo, ele executa `mvn test` com Java 21 e compila o frontend com `npm ci` e `npm run build`. O job do backend usa Docker para iniciar o PostgreSQL temporário do Testcontainers.
+
+## Demo online gratuita
+
+Uma opção para demonstração é usar [Render](https://render.com/) para executar o container Docker da aplicação e [Neon](https://neon.com/) para o PostgreSQL. O frontend é servido pela própria API, no mesmo domínio, evitando uma configuração separada de CORS.
+
+1. Crie um projeto PostgreSQL no Neon e guarde a URL JDBC, o usuário e a senha.
+2. No Render, crie um **Web Service** conectado a este repositório, usando o runtime **Docker**.
+3. Configure `DB_URL`, `DB_USERNAME` e `DB_PASSWORD` com os dados do Neon. Configure `JWT_SECRET` com um segredo aleatório de pelo menos 32 bytes. O Render fornece a variável `PORT` usada pelo Spring Boot.
+4. Após o deploy, abra a URL do serviço para usar a aplicação; o Swagger fica em `/swagger-ui/index.html`.
+
+Os planos gratuitos são voltados a demos: o serviço web do Render dorme após 15 minutos sem tráfego e pode levar cerca de um minuto para acordar. O Neon Free tem cotas mensais de compute e armazenamento e escala o banco a zero quando inativo. Não use essa demo para armazenar dados financeiros reais ou como serviço de produção. Consulte os limites atuais antes de publicar.
 
 ## Endpoints principais
 
@@ -120,9 +162,9 @@ As transações aceitam filtros opcionais de mês, tipo e categoria, além de pa
 
 ## Segurança e configuração
 
-As credenciais presentes no `docker-compose.yml` são valores padrão para desenvolvimento local. Não as use em produção. A aplicação aceita configurações por variáveis de ambiente, incluindo `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e `JWT_SECRET`.
+O `.env.example` contém valores de exemplo somente para desenvolvimento local. O Compose exige essas variáveis em vez de usar senhas ou uma chave JWT de fallback dentro do YAML. Para produção, defina credenciais fortes e um `JWT_SECRET` próprio como variáveis secretas no serviço de hospedagem; nunca use os valores do exemplo.
 
-Arquivos `.env` são ignorados pelo Git. Nunca publique senhas reais, tokens ou segredos de produção; em ambientes hospedados, configure-os como secrets da plataforma.
+Arquivos `.env` são ignorados pelo Git. A aplicação também pode receber `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e `JWT_SECRET` diretamente pelo ambiente, o que permite configurar os secrets da plataforma de hospedagem.
 
 ## Estrutura do repositório
 
@@ -130,6 +172,7 @@ Arquivos `.env` são ignorados pelo Git. Nunca publique senhas reais, tokens ou 
 .
 ├── .github/workflows/ci.yml   # Verificações automáticas no GitHub
 ├── frontend/                  # Interface React + TypeScript
+├── docs/screenshots/          # Capturas da interface
 ├── src/main/java/             # API Java e regras de negócio
 ├── src/main/resources/        # Configuração e migrações Flyway
 ├── src/test/java/             # Testes unitários e de integração
