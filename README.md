@@ -122,16 +122,6 @@ npm run build
 
 O workflow do GitHub Actions roda em cada push e pull request. Em paralelo, ele executa `mvn test` com Java 21 e compila o frontend com `npm ci` e `npm run build`. O job do backend usa Docker para iniciar o PostgreSQL temporário do Testcontainers.
 
-## Demo online gratuita
-
-Uma opção para demonstração é usar [Render](https://render.com/) para executar o container Docker da aplicação e [Neon](https://neon.com/) para o PostgreSQL. O frontend é servido pela própria API, no mesmo domínio, evitando uma configuração separada de CORS.
-
-1. Crie um projeto PostgreSQL no Neon e guarde a URL JDBC, o usuário e a senha.
-2. No Render, crie um **Web Service** conectado a este repositório, usando o runtime **Docker**.
-3. Configure `DB_URL`, `DB_USERNAME` e `DB_PASSWORD` com os dados do Neon. Configure `JWT_SECRET` com um segredo aleatório de pelo menos 32 bytes. O Render fornece a variável `PORT` usada pelo Spring Boot.
-4. Após o deploy, abra a URL do serviço para usar a aplicação; o Swagger fica em `/swagger-ui/index.html`.
-
-Os planos gratuitos são voltados a demos: o serviço web do Render dorme após 15 minutos sem tráfego e pode levar cerca de um minuto para acordar. O Neon Free tem cotas mensais de compute e armazenamento e escala o banco a zero quando inativo. Não use essa demo para armazenar dados financeiros reais ou como serviço de produção. Consulte os limites atuais antes de publicar.
 
 ## Endpoints principais
 
