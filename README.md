@@ -1,121 +1,138 @@
-# FinancesFlow API
+# FinancesFlow
 
-API REST para gestão financeira pessoal, construída com Java 21 e Spring Boot.
+[![CI](https://github.com/lucastomazcs/FinancesFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/lucastomazcs/FinancesFlow/actions/workflows/ci.yml)
 
-## Requisitos
+Aplicação full stack para controle financeiro pessoal. O projeto combina uma API REST em Java com uma interface web em React para registrar transações, acompanhar orçamentos e controlar cartões e faturas.
+
+## Funcionalidades
+
+- Cadastro e login com autenticação JWT.
+- Transações de receita e despesa, com edição, exclusão, filtros e paginação.
+- Resumo mensal de receitas, despesas e saldo.
+- Orçamentos por categoria, com gastos, valor restante e aviso de limite excedido.
+- Cartões de crédito, compras parceladas, faturas e registro de pagamento.
+- Isolamento dos dados: cada pessoa acessa apenas os próprios registros.
+- Migrações de banco versionadas com Flyway e documentação de API com Swagger / OpenAPI.
+
+## Tecnologias
+
+| Camada | Tecnologias |
+| --- | --- |
+| Backend | Java 21, Spring Boot, Spring Security, JWT, Spring Data JPA |
+| Banco | PostgreSQL, Flyway |
+| Frontend | React, TypeScript, Vite |
+| Testes | JUnit, Mockito, Spring MockMvc, Testcontainers |
+| Ambiente | Docker Compose, GitHub Actions |
+
+## Como a aplicação funciona
+
+```mermaid
+flowchart LR
+  Browser[React + TypeScript] -->|HTTP + JWT| API[Spring Boot REST API]
+  API --> Service[Regras de negócio]
+  Service --> JPA[Spring Data JPA]
+  JPA --> DB[(PostgreSQL)]
+  Migrations[Flyway] --> DB
+```
+
+O frontend envia requisições autenticadas para a API. Os controllers recebem os pedidos, os serviços aplicam as regras de negócio e os repositórios persistem os dados no PostgreSQL. O Flyway cria e atualiza o esquema do banco por migrações.
+
+## Executar localmente
+
+### Requisitos
 
 - JDK 21
-- Maven 3.6.3 ou superior
 - Docker Desktop com Docker Compose
+- Node.js 20 ou superior e npm
 
-## Executar com Docker Compose
+### Backend e banco de dados
 
-Com o Docker Desktop ativo, inicie o banco e a API:
+Na raiz do projeto, execute:
 
 ```bash
 docker compose up -d --build
 ```
 
-O Swagger fica em `http://localhost:8080/swagger-ui/index.html`; o PostgreSQL continua acessível na porta `5433`. O Compose espera o banco ficar saudável antes de iniciar a API. Os dados permanecem no volume `financesflow-postgres-data` quando os containers são parados com `docker compose down`.
+A API fica em `http://localhost:8080`. A interface Swagger fica em `http://localhost:8080/swagger-ui/index.html`.
 
-Para desenvolver sem Docker para a API, inicie somente o banco com `docker compose up -d database` e rode `mvn spring-boot:run`. No PowerShell, configure antes `DB_URL=jdbc:postgresql://localhost:5433/financesflow`, `DB_USERNAME=financesflow`, `DB_PASSWORD=financesflow` e um `JWT_SECRET` com ao menos 32 caracteres.
+### Frontend
 
-Na primeira inicialização, o Flyway cria as tabelas do projeto. O segredo JWT padrão do Compose é somente para desenvolvimento local; configure `JWT_SECRET` no ambiente ou no arquivo `.env` antes de usar em outro ambiente.
-
-## Testes
-
-Execute `mvn test` com o Docker Desktop ativo. Os testes unitários usam mocks; os testes de integração iniciam um PostgreSQL temporário com Testcontainers e percorrem os fluxos HTTP sem usar o banco de desenvolvimento.
-
-## Integração contínua
-
-O GitHub Actions executa verificações em cada push e pull request. O job do backend roda `mvn test` com Java 21 e usa Docker para os testes de integração com Testcontainers. Em paralelo, o job do frontend instala as versões registradas em `frontend/package-lock.json` com `npm ci` e roda `npm run build`.
-
-Um workflow verde confirma que os testes do backend passaram e que o frontend compila. Para ver o resultado na aba **Actions**, envie este projeto para um repositório GitHub.
-
-## Interface web
-
-Com a API e o banco ativos pelo Compose, inicie o front-end em outro terminal:
+Em outro terminal:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-Abra `http://localhost:5173`. O Vite encaminha as chamadas `/api` para a API em `http://localhost:8080`. A interface inicial inclui cadastro/login, resumo mensal e criação/listagem de transações.
+Abra `http://localhost:5173`. Se essa porta estiver ocupada, o Vite informa a porta alternativa no terminal. O Vite encaminha as chamadas `/api` para o backend local.
 
-## Endpoints disponíveis
+Para parar os containers, execute `docker compose down`. O banco usa um volume Docker, então os dados persistem entre reinicializações. `docker compose down -v` também remove o volume e apaga os dados locais.
 
-| Método | Endpoint | Descrição |
+## Testes e compilação
+
+Com o Docker Desktop ativo, rode os testes do backend na raiz:
+
+```bash
+mvn test
+```
+
+Testes unitários usam mocks para verificar regras de negócio. Testes de integração iniciam um PostgreSQL temporário com Testcontainers e exercitam as rotas HTTP, autenticação e persistência sem tocar no banco local do Compose.
+
+Para compilar o frontend:
+
+```bash
+cd frontend
+npm ci
+npm run build
+```
+
+## Integração contínua
+
+O workflow do GitHub Actions roda em cada push e pull request. Em paralelo, ele executa `mvn test` com Java 21 e compila o frontend com `npm ci` e `npm run build`. O job do backend usa Docker para iniciar o PostgreSQL temporário do Testcontainers.
+
+## Endpoints principais
+
+As rotas privadas exigem o token JWT retornado pelo login. No Swagger, use **Authorize** para informar `Bearer <token>`.
+
+| Método | Endpoint | Uso |
 | --- | --- | --- |
-| `POST` | `/api/transactions` | Cria uma transação |
-| `GET` | `/api/transactions` | Lista transações |
-| `GET` | `/api/transactions/{id}` | Busca uma transação |
-| `PUT` | `/api/transactions/{id}` | Atualiza uma transação |
-| `DELETE` | `/api/transactions/{id}` | Remove uma transação |
-| `POST` | `/api/auth/register` | Cadastra um usuário |
-| `POST` | `/api/auth/login` | Autentica e retorna um token JWT |
-| `GET` | `/api/reports/monthly?month=2026-10` | Gera o resumo mensal do usuário autenticado |
-| `POST` | `/api/budgets` | Cria um orçamento mensal para uma categoria |
-| `GET` | `/api/budgets?month=2026-10` | Lista os orçamentos e gastos do mês |
-| `POST` | `/api/cards` | Cadastra um cartão de crédito |
-| `GET` | `/api/cards` | Lista os cartões do usuário autenticado |
-| `POST` | `/api/cards/{cardId}/purchases` | Registra uma compra no cartão |
-| `GET` | `/api/cards/{cardId}/invoices?month=2026-11` | Consulta uma fatura mensal do cartão |
-| `POST` | `/api/cards/{cardId}/invoices/pay?month=2026-11` | Paga uma fatura e libera o limite correspondente |
+| `POST` | `/api/auth/register` | Criar conta |
+| `POST` | `/api/auth/login` | Entrar e receber token |
+| `GET`, `POST` | `/api/transactions` | Listar e criar transações |
+| `GET`, `PUT`, `DELETE` | `/api/transactions/{id}` | Consultar, editar e remover uma transação |
+| `GET` | `/api/reports/monthly?month=2026-10` | Consultar resumo mensal |
+| `GET`, `POST` | `/api/budgets` | Listar e criar orçamentos |
+| `GET`, `POST` | `/api/cards` | Listar e criar cartões |
+| `POST` | `/api/cards/{cardId}/purchases` | Registrar compra parcelada |
+| `GET` | `/api/cards/{cardId}/invoices?month=2026-11` | Consultar fatura |
+| `POST` | `/api/cards/{cardId}/invoices/pay?month=2026-11` | Pagar fatura |
 
-As rotas de transações, relatórios e orçamentos exigem o token retornado pelo login. No Swagger, clique em **Authorize** e informe o token. Cada consulta considera apenas o usuário autenticado.
+As transações aceitam filtros opcionais de mês, tipo e categoria, além de paginação. Os parâmetros detalhados estão no Swagger.
 
-Erros da API usam o formato `application/problem+json` (Problem Details), com `type`, `title`, `status`, `detail` e `instance`. Erros de validação também incluem `errors`, uma lista com o campo e a mensagem de cada problema.
+## Regras de negócio em destaque
 
-Exemplo de corpo para criar uma transação:
+- Um orçamento é único por usuário, categoria e mês.
+- Os gastos do orçamento somam despesas da categoria e parcelas de cartão no mês de cada fatura.
+- Compras no dia de fechamento do cartão ou depois entram na fatura seguinte.
+- O pagamento da fatura libera o limite referente às parcelas pagas; parcelas futuras continuam comprometendo o limite.
+- As consultas de transações, relatórios, cartões e orçamentos são limitadas à pessoa autenticada.
 
-```json
-{
-  "description": "Mercado do mês",
-  "amount": 450.75,
-  "type": "EXPENSE",
-  "category": "Alimentação",
-  "transactionDate": "2026-10-15"
-}
+## Segurança e configuração
+
+As credenciais presentes no `docker-compose.yml` são valores padrão para desenvolvimento local. Não as use em produção. A aplicação aceita configurações por variáveis de ambiente, incluindo `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e `JWT_SECRET`.
+
+Arquivos `.env` são ignorados pelo Git. Nunca publique senhas reais, tokens ou segredos de produção; em ambientes hospedados, configure-os como secrets da plataforma.
+
+## Estrutura do repositório
+
+```text
+.
+├── .github/workflows/ci.yml   # Verificações automáticas no GitHub
+├── frontend/                  # Interface React + TypeScript
+├── src/main/java/             # API Java e regras de negócio
+├── src/main/resources/        # Configuração e migrações Flyway
+├── src/test/java/             # Testes unitários e de integração
+├── docker-compose.yml         # API e PostgreSQL para desenvolvimento
+└── pom.xml                    # Dependências e build Maven
 ```
-
-Os tipos aceitos são `INCOME` e `EXPENSE`. Valores precisam ser positivos.
-
-Exemplo de corpo para criar um orçamento:
-
-```json
-{
-  "category": "Alimentação",
-  "monthlyLimit": 800.00,
-  "month": "2026-10"
-}
-```
-
-O orçamento agrega transações do tipo `EXPENSE` pela data da transação e parcelas de compras no cartão pela fatura a que pertencem. Há um orçamento por categoria e mês para cada usuário. O campo `month` usa o formato `AAAA-MM`.
-
-Exemplo de corpo para cadastrar um cartão:
-
-```json
-{
-  "name": "Cartão principal",
-  "creditLimit": 2500.00,
-  "closingDay": 10,
-  "dueDay": 17
-}
-```
-
-O cartão pertence ao usuário autenticado e não armazena o número completo. Os dias de fechamento e vencimento aceitam valores de 1 a 28, e o vencimento deve ser posterior ao fechamento. Compras feitas no dia de fechamento ou depois vão para a fatura do mês seguinte. Por exemplo, com fechamento no dia 10, uma compra em 10/10 e outra em 11/10 entram na fatura de novembro. Relatórios mensais e orçamentos contam o valor de cada parcela no mês da fatura.
-
-O corpo de compra aceita `installments` de 1 a 48. O limite disponível diminui pelo valor total da compra; a fatura e o relatório mensal recebem uma parcela por mês. Se o valor não puder ser dividido exatamente em centavos, a última parcela recebe o ajuste de arredondamento.
-
-Para registrar o pagamento, use `POST /api/cards/{cardId}/invoices/pay?month=AAAA-MM`. Uma fatura vazia ou já paga retorna `409 Conflict`. O pagamento libera do limite somente as parcelas daquela fatura; as parcelas futuras continuam comprometendo o limite.
-
-## Códigos HTTP úteis
-
-- `201 Created`: usuário, transação ou orçamento criado.
-- `200 OK`: consulta, login ou atualização concluída.
-- `400 Bad Request`: corpo ou parâmetro inválido.
-- `401 Unauthorized`: token ausente ou inválido.
-- `404 Not Found`: registro não encontrado para o usuário autenticado.
-- `409 Conflict`: e-mail já cadastrado, orçamento duplicado para a categoria e mês ou cartão duplicado.
