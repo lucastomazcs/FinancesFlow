@@ -1,0 +1,17 @@
+:root {
+  font-family: Inter, 'Segoe UI', sans-serif;
+  color: #283a30;
+  background: #f5f6f3;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  font-weight: 400;
+}
+
+* { box-sizing: border-box; }
+html { min-width: 320px; min-height: 100%; }
+body { min-width: 320px; min-height: 100vh; margin: 0; }
+button, input { font-family: inherit; }
+button:focus-visible, input:focus-visible { outline: 3px solid rgba(62, 142, 96, .28); outline-offset: 2px; }

@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: finances-flow-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/financesflow}
+    username: ${DB_USERNAME:financesflow}
+    password: ${DB_PASSWORD:financesflow}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+
+server:
+  port: ${SERVER_PORT:8080}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  security:
+    jwt-secret: ${JWT_SECRET}

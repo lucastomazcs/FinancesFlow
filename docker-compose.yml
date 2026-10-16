@@ -1,0 +1,34 @@
+services:
+  database:
+    image: postgres:17-alpine
+    container_name: financesflow-database
+    environment:
+      POSTGRES_DB: financesflow
+      POSTGRES_USER: financesflow
+      POSTGRES_PASSWORD: financesflow
+    ports:
+      - "5433:5432"
+    volumes:
+      - financesflow-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U financesflow -d financesflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    container_name: financesflow-api
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://database:5432/financesflow
+      DB_USERNAME: financesflow
+      DB_PASSWORD: financesflow
+      JWT_SECRET: ${JWT_SECRET:-FinancesFlow-local-dev-secret-change-before-production-2026}
+    ports:
+      - "8080:8080"
+
+volumes:
+  financesflow-postgres-data:
